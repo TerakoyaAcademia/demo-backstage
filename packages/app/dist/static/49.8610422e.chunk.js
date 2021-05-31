@@ -1,0 +1,2 @@
+(window.webpackJsonp=window.webpackJsonp||[]).push([[49],{2780:function(n,e,t){"use strict";t.r(e),t.d(e,"CatalogEntityPage",(function(){return r}));t(29),t(3),t(140),t(12);var a=t(0),c=t.n(a),o=t(74),l=t(19);t(273),t(609),t(610);const r=()=>c.a.createElement(o.c,null,c.a.createElement(l.c,null))}}]);
+//# sourceMappingURL=49.8610422e.chunk.js.map
