@@ -5,27 +5,61 @@ import {
   Table,
   TableColumn,
   Progress,
+  gitlabAuthApiRef,
+  useApi,
 } from '@backstage/core';
 import { graphql } from '@octokit/graphql';
 
 const query = `{
   projects(membership: true) {
-        nodes {
-          name
-          createdAt
-          description
-          forksCount
-          fullPath
+    nodes {
+      name
+      description
+      lastActivityAt
+      repository{
+        tree(ref: "master"){
+          lastCommit{
+            authorName
+            authoredDate
+          }
+        }
+        blobs(paths: "README.md") {
+        nodes{
+          rawTextBlob
         }
       }
-    }`;
+      }
+    }
+  }
+}`;
 
 type Node = {
   name: string;
-  createdAt: string;
   description: string;
-  forksCount: string;
-  fullPath: string;
+  lastActivityAt: string;
+  repository: Repository;
+}
+
+type Repository={
+  tree: Tree;
+  blobs: RepositoryBlob;
+}
+
+type Tree={
+  lastCommit: Lastcommit;
+}
+
+type RepositoryBlob={
+  nodes: BlobNode[];
+}
+
+type BlobNode={
+  rawTextBlob: string;
+}
+
+type Lastcommit={
+  authorName: string;
+  authoredDate: string;
 }
 
 type Viewer = {
@@ -39,18 +73,22 @@ type DenseTableProps = {
 };
 
 export const DenseTable = ({ viewer }: DenseTableProps) => {
+  // console.log(viewer)
+  // console.log(viewer.projects.nodes[0].repository.blobs.nodes[0].rawTextBlob)
+  // console.log(viewer.projects.nodes[0].repository.tree.lastCommit.authorName)
   const columns: TableColumn[] = [
     { title: 'Name', field: 'name' },
-    { title: 'Created', field: 'createdAt' },
     { title: 'Description', field: 'description' },
-    { title: 'Fork Count', field: 'forksCount' },
-    { title: 'Path', field: 'fullPath' },
+    { title: 'Last Activity', field: 'lastActivityAt' },
+    { title: 'Latest Committed By', field: `repository.tree.lastCommit.authorName` },
+    { title: 'Latest Committed Date', field: `repository.tree.lastCommit.authoredDate` },
+    { title: 'Read Me', field: `repository.blobs.nodes[0].rawTextBlob` },
   ];
 
   return (
     <Table
       title="List Of User's Repositories"
-      options={{ search: false, paging: false }}
+      options={{ search: true, paging: true }}
       columns={columns}
       data={viewer.projects.nodes}
     />
@@ -58,8 +96,9 @@ export const DenseTable = ({ viewer }: DenseTableProps) => {
 };
 
 export const ExampleFetchComponent = () => {
+  const auth = useApi(gitlabAuthApiRef);
   const { value, loading, error } = useAsync(async (): Promise<any> => {
-    const token = '${YOUR_PERSONAL_ACCESS_TOKEN}'
+    const token = await auth.getAccessToken();
     const gqlEndpoint = graphql.defaults({
       baseUrl: 'https://gitlab.com/api',
       headers: {
@@ -70,7 +109,7 @@ export const ExampleFetchComponent = () => {
     return viewer;
   }, []);
 
-  console.log("value", value);
+  // console.log("value", value);
   if (loading) return <Progress />;
   if (error) return <Alert severity="error">{error.message}</Alert>;
   if (value && value.projects) return <DenseTable viewer={value} />;
